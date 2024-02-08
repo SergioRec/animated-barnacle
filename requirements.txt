@@ -1,0 +1,12 @@
+pandas
+numpy
+rasterio
+scipy
+rioxarray
+xarray
+matplotlib
+seaborn
+pre-commit
+pyprojroot
+geopandas
+ipykernel
