@@ -20,6 +20,7 @@ import os
 import rasterio as rio
 import geopandas as gpd
 import matplotlib.pyplot as plt
+import numpy as np
 
 from rasterio.mask import raster_geometry_mask
 from shapely import box
@@ -31,7 +32,7 @@ A raster file consists of a matrix of cells. Each cell contains a value
 representing some information. A file may contain several layers, each
 representing different information.
 
-A Python package useful to process raster files is called rasterio.
+A Python package useful to process raster files is called `rasterio`.
 """
 
 # %%
@@ -104,7 +105,6 @@ print(type(band))
 
 plt.imshow(band)
 
-# %%
 # %% [markdown] noqa: D212, D400, D415
 """
 It is also possible to read a specific chunk of a band (e.g. whatever falls
@@ -119,6 +119,8 @@ of the crop provided. We can use this window as an argument when reading a
 layer.
 
 """
+
+# %%
 # bbox around the Bristol channel
 bbox = [-3.6955, 51.1869, -2.3002, 51.9855]
 bbox_gdf = gpd.GeoDataFrame(geometry=[box(*bbox)], crs="EPSG: 4326").to_crs(
@@ -132,4 +134,61 @@ _, aff, window = raster_geometry_mask(
 band_cropped = dataset.read(1, window=window)
 plt.imshow(band_cropped)
 
+# %% [markdown] noqa: D212, D400, D415
+"""
+Other transformations or infomation extraction can be done directly into
+the data arrays. After that, the modified data can be resaved as a new raster
+file.
+<br>
+<br>
+To save the new raster, you will need to include some profile information, like
+the affine transform, what value to use for nulls, etc. It is possible to
+reuse the profile from the original raster, changing only the modified
+parameters.
+
+"""
+
 # %%
+# we can select all cells with higher than 5,000  population
+mask = band_cropped > 5000
+filtered_band = np.where(mask, band_cropped, -200)
+
+# image shows only kept cells
+plt.imshow(filtered_band)
+
+# get original profile
+profile = dataset.profile
+print(profile)
+
+# modified relevant parts, in this case the affine transform and the size
+# as we have cropped the raster
+profile.update(
+    transform=aff, height=filtered_band.shape[0], width=filtered_band.shape[1]
+)
+
+# now we can save our processed raster file
+with rio.open(here("data/modified_raster.tif"), "w", **profile) as w:
+    w.write(filtered_band, 1)
+
+# %%
+# and you can read it again to check that it saved correctly
+with rio.open(here("data/modified_raster.tif")) as r:
+    d = r.read(1)
+    print(r.profile)
+    plt.imshow(d)
+
+# %% [markdown] noqa: D212, D400, D415
+"""
+It is possible to convert a raster to vector format (i.e. as used by
+GeoPandas). This may be useful to plot or to combine with other geographical
+information, but you will lose some of the functionality of the raster format
+so it's worth doing it once the raster has been processed completely.
+<br>
+<br>
+To do this, there are two further dependencies: `geocube` to vectorize, and
+`rioxarray`, to convert the raster to `xarray` format, which is necessary for
+`geocube`.
+
+"""
+# %%
+# code here

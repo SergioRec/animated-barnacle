@@ -10,3 +10,4 @@ pre-commit
 pyprojroot
 geopandas
 ipykernel
+geocube
