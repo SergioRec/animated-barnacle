@@ -17,14 +17,16 @@ projection. The dataset contains population values in a 1km x 1km grid.
 # imports
 import os
 
-import rasterio as rio
 import geopandas as gpd
 import matplotlib.pyplot as plt
 import numpy as np
+import rasterio as rio
+import xarray as xr
 
+from geocube.vector import vectorize
+from pyprojroot import here
 from rasterio.mask import raster_geometry_mask
 from shapely import box
-from pyprojroot import here
 
 # %% [markdown] noqa: D212, D400, D415
 """
@@ -186,9 +188,27 @@ so it's worth doing it once the raster has been processed completely.
 <br>
 <br>
 To do this, there are two further dependencies: `geocube` to vectorize, and
-`rioxarray`, to convert the raster to `xarray` format, which is necessary for
+`xarray`, to convert the raster to `xarray` format, which is necessary for
 `geocube`.
 
 """
 # %%
-# code here
+# convert to xarray
+x_array = (
+    xr.DataArray(filtered_band)
+    .astype("int32")
+    .rio.write_nodata(-200)
+    .rio.write_transform(aff)
+    .rio.set_crs("ESRI: 54009", inplace=True)
+)
+
+# print xarray to see format
+print(x_array)
+
+# vectorise!
+gdf = vectorize(x_array)
+
+# change column names and explore
+gdf.columns = ["label", "geometry"]
+gdf.explore()
+# %%
